@@ -8,40 +8,43 @@ import {
   TextField,
   FormControlLabel,
   Checkbox,
+  Divider,
 } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
-import HighlightOffIcon from '@material-ui/icons/HighlightOff';
+import DeleteIcon from '@material-ui/icons/Delete';
 import EditIcon from '@material-ui/icons/Edit';
 
 const useStyles = makeStyles((theme) => ({
   container: {
-    display: 'flex',
-    flexDirection: 'column',
+    backgroundImage: `linear-gradient(135deg, #fdfcfb 0%, #e2d1c3 100%)`,
+    minHeight: '100vh',
   },
   main: {
-    padding: '20px',
     justifyContent: 'center',
     alignItems: 'center',
+    padding: '10px',
+  },
+  title: {
+    color: '#C1AC95',
+    fontSize: '80px',
+    fontFamily: `'Caveat', cursive`,
   },
   textField: {
     width: '500px',
   },
   card: {
-    backgroundColor: 'pink',
+    borderStyle: 'solid',
+    borderColor: '#B5CDA3',
     margin: '15px',
     padding: '20px',
   },
+  icons: {
+    paddingTop: '5px',
+  },
   icon: {
-    marginLeft: '95%',
-    marginTop: '-35px',
+    padding: '10px',
   },
-  icon2: {
-    marginLeft: '85%',
-    marginTop: '-35px',
-  },
-  box: {
-    maxWidth: '530px',
-  },
+  but: { backgroundColor: '#B5CDA3' },
 }));
 
 function App() {
@@ -52,45 +55,37 @@ function App() {
     setNewItem(e.target.value);
   }
 
-  function addNewPost() {
-    setList([...list, { name: newItem, completed: false }]);
-    fire.firestore().collection('ToDo').add({
+  const addNewPost = async () => {
+    setNewItem('');
+    await fire.firestore().collection('ToDo').add({
       name: newItem,
       completed: false,
     });
-  }
+  };
 
   useEffect(() => {
-    let active = true;
     fire
       .firestore()
       .collection('ToDo')
-      .get()
-      .then((item) => {
-        const all = [];
-        item.forEach((doc) => {
+      .onSnapshot((docs) => {
+        let temp = [];
+        docs.forEach((doc) => {
           const data = doc.data();
           data.id = doc.id;
-          console.log(data);
-          all.push(data);
+          temp.push(data);
         });
-        if (active) {
-          setList(all);
-        }
+        setList(temp);
       });
-
-    return () => {
-      active = false;
-    };
   }, []);
   return (
     <div className={classes.container}>
       <Grid container direction='column' className={classes.main}>
-        <Grid item sx={6}>
+        <Grid item xs={6}>
           <Typography
             variant='h3'
             color='textPrimary'
             align='center'
+            className={classes.title}
             gutterBottom
           >
             TO DO LIST
@@ -102,11 +97,13 @@ function App() {
                 variant='outlined'
                 className={classes.textField}
                 onChange={handleChange}
+                value={newItem}
               />
             </Grid>
 
             <Grid item style={{ display: 'flex' }}>
               <Button
+                className={classes.but}
                 color='secondary'
                 variant='contained'
                 onClick={addNewPost}
@@ -120,56 +117,53 @@ function App() {
 
       <Grid container direction='column' className={classes.main}>
         {list &&
-          list.map((item) => {
+          list.map((item, index) => {
             return (
-              <>
-                <Grid
-                  container
-                  item
-                  xs={6}
-                  direction='row'
-                  className={classes.card}
-                >
+              <Grid
+                container
+                key={index}
+                item
+                xs={6}
+                direction='column'
+                className={classes.card}
+              >
+                <Grid>
                   <FormControlLabel
-                    className={classes.box}
                     control={
                       <Checkbox
                         checked={item.completed}
                         onChange={() => {
-                          const tasks = list.filter(
-                            (task) => task.id !== item.id
-                          );
-                          tasks.push({
-                            name: item.name,
-                            completed: !item.completed,
-                          });
-                          setList(tasks);
                           fire
                             .firestore()
                             .collection('ToDo')
                             .doc(item.id)
                             .update({ completed: !item.completed });
+                          console.log(item);
+                        }}
+                        style={{
+                          color: '#B5CDA3',
                         }}
                         name='checkedA'
                       />
                     }
+                    contentEditable='true'
                     label={item.name}
                     style={{
                       textDecoration: item.completed ? 'line-through' : null,
                     }}
                   />
-
-                  <HighlightOffIcon
+                </Grid>
+                <Divider />
+                <Grid className={classes.icons}>
+                  <DeleteIcon
+                    className={classes.icon}
                     onClick={() => {
-                      const tasks = list.filter((task) => task.id !== item.id);
                       fire.firestore().collection('ToDo').doc(item.id).delete();
-                      setList(tasks);
                     }}
-                    className={classes.icon2}
-                  ></HighlightOffIcon>
+                  ></DeleteIcon>
                   <EditIcon className={classes.icon}></EditIcon>
                 </Grid>
-              </>
+              </Grid>
             );
           })}
       </Grid>
